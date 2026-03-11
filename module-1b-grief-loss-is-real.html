@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UnBroken – The Grief That Doesn't Look Like Grief</title>
+  <!-- covers job loss AND forced early retirement -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #203445;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      padding: 30px;
+    }
+    .progress-bar-container {
+      background: #e9ecef;
+      border-radius: 10px;
+      height: 8px;
+      margin-bottom: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #5da0af, #acc95d);
+      transition: width 0.4s ease;
+    }
+    .step-counter {
+      text-align: right;
+      font-size: 13px;
+      color: #6c757d;
+      margin-bottom: 24px;
+    }
+    .step-section { display: none; }
+    .step-section.active { display: block; }
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 32px;
+      gap: 12px;
+    }
+    .btn {
+      padding: 12px 28px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn-primary { background: #5da0af; color: white; }
+    .btn-secondary { background: #e9ecef; color: #203445; }
+    .btn-invisible { visibility: hidden; }
+    h1 { color: #203445; font-size: 26px; margin-bottom: 8px; }
+    h2 { color: #203445; font-size: 20px; margin-bottom: 12px; margin-top: 24px; }
+    p { color: #203445; margin-bottom: 14px; line-height: 1.6; }
+    textarea {
+      width: 100%; min-height: 120px; padding: 12px;
+      border: 1px solid #dee2e6; border-radius: 6px;
+      font-family: inherit; font-size: 15px; resize: vertical; margin-top: 8px;
+      line-height: 1.6;
+    }
+    textarea:focus { outline: none; border-color: #5da0af; }
+
+    /* Identity loss cards */
+    .identity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .identity-card {
+      border: 2px solid transparent;
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      user-select: none;
+    }
+    .identity-card:nth-child(1)  { background: #e8f4f6; border-color: #5da0af; }
+    .identity-card:nth-child(2)  { background: #f0f7e8; border-color: #acc95d; }
+    .identity-card:nth-child(3)  { background: #fef9f2; border-color: #dfb852; }
+    .identity-card:nth-child(4)  { background: #fdf3ee; border-color: #d56439; }
+    .identity-card:nth-child(5)  { background: #e8f4f6; border-color: #5da0af; }
+    .identity-card:nth-child(6)  { background: #f0f7e8; border-color: #acc95d; }
+    .identity-card:nth-child(7)  { background: #fef9f2; border-color: #dfb852; }
+    .identity-card:nth-child(8)  { background: #fdf3ee; border-color: #d56439; }
+    .identity-card:nth-child(9)  { background: #e8f4f6; border-color: #5da0af; }
+    /* Selected: deepen the fill and bold the label */
+    .identity-card.selected { box-shadow: 0 2px 10px rgba(0,0,0,0.15); transform: translateY(-2px); }
+    .identity-card.selected:nth-child(1)  { background: #c2dfe6; }
+    .identity-card.selected:nth-child(2)  { background: #d8edbb; }
+    .identity-card.selected:nth-child(3)  { background: #faecc8; }
+    .identity-card.selected:nth-child(4)  { background: #f7cdb8; }
+    .identity-card.selected:nth-child(5)  { background: #c2dfe6; }
+    .identity-card.selected:nth-child(6)  { background: #d8edbb; }
+    .identity-card.selected:nth-child(7)  { background: #faecc8; }
+    .identity-card.selected:nth-child(8)  { background: #f7cdb8; }
+    .identity-card.selected:nth-child(9)  { background: #c2dfe6; }
+    .identity-card.selected .card-label { font-weight: 800; }
+    .identity-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.10); transform: translateY(-1px); }
+    .identity-card .card-label { font-size: 14px; font-weight: 600; color: #203445; margin-bottom: 4px; }
+    .identity-card .card-desc { font-size: 12px; color: #4a5568; line-height: 1.4; }
+
+    /* Body map */
+    .body-sensation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .sensation-card {
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      padding: 14px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .sensation-card:hover { border-color: #d56439; background: #fdf3ee; }
+    .sensation-card.selected { border-color: #d56439; background: #fdf3ee; }
+    .sensation-card input[type="checkbox"] { accent-color: #d56439; margin-top: 2px; flex-shrink: 0; }
+    .sensation-card label { font-size: 14px; color: #203445; cursor: pointer; line-height: 1.4; }
+
+    /* Key insight block */
+    .key-insight {
+      background: linear-gradient(135deg, #203445, #2d5068);
+      border-radius: 8px;
+      padding: 24px;
+      margin: 20px 0;
+      color: white;
+    }
+    .key-insight h3 { color: white; margin-bottom: 12px; }
+    .key-insight p { color: rgba(255,255,255,0.9); margin-bottom: 10px; }
+
+    /* Final download button */
+    .download-btn {
+      background: linear-gradient(135deg, #203445, #2d5068);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 12px;
+      transition: opacity 0.2s;
+    }
+    .download-btn:hover { opacity: 0.88; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="progress-bar-container">
+    <div class="progress-bar-fill" id="progress-bar" style="width: 9%"></div>
+  </div>
+  <div class="step-counter" id="step-counter">Step 1 of 9</div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STEP 1... Opening / Welcome Back -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="step-1" class="step-section active">
+    <h1>The Grief That Doesn't Look Like Grief</h1>
+    <p>Welcome back. The fact that you returned... to keep looking honestly at what happened... says something real about your courage.</p>
+
+    <div style="border-left: 4px solid #5da0af; background: #e8f4f6; padding: 18px 20px; border-radius: 6px; margin: 20px 0;">
+      <strong>Building on The Loss Is Real</strong>
+      <p style="margin: 8px 0 0;">In <em>The Loss Is Real</em>, you named what you lost... and began to understand that job loss is a real, legitimate loss that deserves grief. We introduced the idea of ambiguous loss there. Today, we go deeper into that concept and the others underneath it. We're going to look at <em>why</em> this particular grief is so hard to carry... and why so many people end up confused, alone in it, or wondering if something is wrong with them for not being "over it" yet.</p>
+      <p style="margin: 10px 0 0;">This module is for anyone who has experienced sudden job loss... <strong>and for anyone who has been pushed into early retirement before they were ready.</strong> These losses share more in common than our culture tends to acknowledge, and both deserve the full weight of this conversation.</p>
+    </div>
+
+    <p>Nothing is wrong with you. What's happening is far more specific... and far more understandable... than that.</p>
+
+    <div style="border-left: 4px solid #acc95d; background: #f0f9f7; padding: 16px 20px; border-radius: 6px; margin: 20px 0;">
+      <strong style="color: #6b8f2e;">Your intention for today</strong>
+      <p style="margin: 8px 0 0; color: #6c757d; font-style: italic;">You don't need to reach acceptance or resolution. You just need to understand what you're actually carrying... and why it weighs what it weighs.</p>
+    </div>
+
+    <p style="font-size: 14px; color: #6c757d;">This module has 9 steps and takes about 25–30 minutes. Go at your own pace.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STEP 2... Ambiguous Loss: When There's No Funeral -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="step-2" class="step-section">
+    <h2>When There's No Funeral</h2>
+
+    <p>When someone dies, the world makes room for you. People bring food. You get time off. There are rituals... a funeral, a gathering, a card in the mail that says <em>I see that you are hurting.</em></p>
+    <p>When you lose your job... or are pushed out of your career before you were ready... none of that happens.</p>
+    <p>You might get a brief email. An HR exit script. A cardboard box. Or you might get a conversation framed as "the right time," pressed on you by an organization that had already decided. And then... silence. The world keeps moving. And you're supposed to, too.</p>
+
+    <div style="border-left: 4px solid #dfb852; background: #fef9f2; padding: 24px; border-radius: 6px; margin: 20px 0;">
+      <h3 style="color: #d4a017; margin-bottom: 4px;">💡 Key Concept: Ambiguous Loss</h3>
+      <p style="color: #6c757d; font-size: 14px; font-style: italic; margin-bottom: 16px;">Take as much time as you want to think and write</p>
+      <p>Psychologist Pauline Boss spent decades studying what she called <strong>ambiguous loss</strong>... grief for something that doesn't have a clear ending, or for a loss that the outside world doesn't fully recognize.</p>
+      <p>Job loss is a textbook example. And so is <strong>forced early retirement</strong>... perhaps even more so. When retirement is pushed on you before you were ready, the loss is real, but the cultural script works against you in a particularly cruel way: retirement is supposed to be a celebration. A reward. The finish line you've been working toward. Which means when it arrives too soon, or not on your terms, you can be left carrying grief that no one around you believes you're allowed to feel. <em>"But you're so lucky... you can relax now."</em> The minimization can be almost worse than the silence.</p>
+      <p>Boss found that ambiguous loss is often <em>harder to process</em> than clear-cut loss, precisely because it lacks the social supports and rituals that help people move through grief. You can't close a chapter that no one acknowledged was open.</p>
+    </div>
+
+    <div style="border-left: 4px solid #5da0af; background: #e8f4f6; padding: 18px 20px; border-radius: 6px; margin: 20px 0; font-style: italic;">
+      <p style="margin: 0; color: #203445;">"Ambiguous loss is the most devastating of losses, because it defies resolution and creates long-term confusion."</p>
+      <p style="margin: 8px 0 0; font-style: normal; font-size: 14px; color: #6c757d;">— Pauline Boss, <em>Ambiguous Loss</em></p>
+    </div>
+
+    <div style="background: #e8f4f6; border-radius: 6px; padding: 16px 20px; margin: 16px 0;">
+      <p style="margin: 0;"><strong>Gentle reminder:</strong> If you've been wondering why you can't "just move on"... or why you're grieving something the world is calling a gift... this is part of the answer. You were never given the conditions that help people move through grief. That's not a personal failure. It's a gap in how our culture treats this kind of loss.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STEP 3... The Ritual Gap Exercise -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="step-3" class="step-section">
+    <h2>The Ritual Gap</h2>
+    <p>Let's make this personal. Below are two columns... what our culture offers when grief is recognized, and what most people actually get after job loss or forced retirement.</p>
+
+    <!-- CONTRAST EXERCISE -->
+    <div style="border-left: 4px solid #d56439; background: #f8f9fa; padding: 24px; border-radius: 6px; margin: 24px 0;">
+      <h3 style="color: #d56439; margin-bottom: 4px;">Exercise: The Ritual Gap</h3>
+      <p style="color: #6c757d; font-size: 14px; font-style: italic; margin-bottom: 16px;">Take as much time as you want to think and write</p>
+      <p style="margin-bottom: 20px;"><strong>On the right side, tap any row that feels true for your experience.</strong> You can select as many as apply.</p>
+
+      <!-- Two-column contrast table -->
+      <div style="border-radius: 8px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+
+        <!-- Header row -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr;">
+          <div style="background: #5da0af; padding: 14px 18px;">
+            <p style="margin: 0; font-weight: 700; color: white; font-size: 14px;">When loss is recognized</p>
+            <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255,255,255,0.85); font-style: italic;">e.g. the death of someone close</p>
+          </div>
+          <div style="background: #d56439; padding: 14px 18px;">
+            <p style="margin: 0; font-weight: 700; color: white; font-size: 14px;">What you got instead</p>
+            <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255,255,255,0.85); font-style: italic;">tap any that feel true for you</p>
+          </div>
+        </div>
+
+        <!-- Row 1 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #dee2e6;">
+          <div style="background: #f0f9fb; padding: 14px 18px; display: flex; align-items: center;">
+            <p style="margin: 0; font-size: 14px; color: #203445;">People reach out to acknowledge your pain</p>
+          </div>
+          <div class="gap-cell" onclick="toggleGapCell(this)" style="background: #fdf3ee; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+            <span class="gap-check" style="flex-shrink:0; width:18px; height:18px; border-radius:4px; border:2px solid #d56439; display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:white; background:transparent; transition: all 0.2s;"></span>
+            <p style="margin: 0; font-size: 14px; color: #203445;">People asked what you're going to do next</p>
+          </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #dee2e6;">
+          <div style="background: #f0f9fb; padding: 14px 18px; display: flex; align-items: center;">
+            <p style="margin: 0; font-size: 14px; color: #203445;">There is a named ritual... a moment of collective acknowledgment</p>
+          </div>
+          <div class="gap-cell" onclick="toggleGapCell(this)" style="background: #fdf3ee; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+            <span class="gap-check" style="flex-shrink:0; width:18px; height:18px; border-radius:4px; border:2px solid #d56439; display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:white; background:transparent; transition: all 0.2s;"></span>
+            <p style="margin: 0; font-size: 14px; color: #203445;">There was an exit meeting, an email, a box to pack</p>
+          </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #dee2e6;">
+          <div style="background: #f0f9fb; padding: 14px 18px; display: flex; align-items: center;">
+            <p style="margin: 0; font-size: 14px; color: #203445;">You are given time... socially, professionally... to not be okay</p>
+          </div>
+          <div class="gap-cell" onclick="toggleGapCell(this)" style="background: #fdf3ee; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+            <span class="gap-check" style="flex-shrink:0; width:18px; height:18px; border-radius:4px; border:2px solid #d56439; display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:white; background:transparent; transition: all 0.2s;"></span>
+            <p style="margin: 0; font-size: 14px; color: #203445;">The expectation to "bounce back" began almost immediately</p>
+          </div>
+        </div>
+
+        <!-- Row 4 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #dee2e6;">
+          <div style="background: #f0f9fb; padding: 14px 18px; display: flex; align-items: center;">
+            <p style="margin: 0; font-size: 14px; color: #203445;">Your loss is named... by you, by others, out loud</p>
+          </div>
+          <div class="gap-cell" onclick="toggleGapCell(this)" style="background: #fdf3ee; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+            <span class="gap-check" style="flex-shrink:0; width:18px; height:18px; border-radius:4px; border:2px solid #d56439; display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:white; background:transparent; transition: all 0.2s;"></span>
+            <p style="margin: 0; font-size: 14px; color: #203445;">The loss was reframed as opportunity, transition, or a new chapter</p>
+          </div>
+        </div>
+
+        <!-- Row 5 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #dee2e6;">
+          <div style="background: #f0f9fb; padding: 14px 18px; display: flex; align-items: center;">
+            <p style="margin: 0; font-size: 14px; color: #203445;">Others hold space for your grief without trying to fix it</p>
+          </div>
+          <div class="gap-cell" onclick="toggleGapCell(this)" style="background: #fdf3ee; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+            <span class="gap-check" style="flex-shrink:0; width:18px; height:18px; border-radius:4px; border:2px solid #d56439; display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:white; background:transparent; transition: all 0.2s;"></span>
+            <p style="margin: 0; font-size: 14px; color: #203445;">You got silver linings, pep talks, and practical advice instead</p>
+          </div>
+        </div>
+
+        <!-- Row 6 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #dee2e6;">
+          <div style="background: #f0f9fb; padding: 14px 18px; display: flex; align-items: center;">
+            <p style="margin: 0; font-size: 14px; color: #203445;">The world slows down slightly... for you, with you</p>
+          </div>
+          <div class="gap-cell" onclick="toggleGapCell(this)" style="background: #fdf3ee; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s;">
+            <span class="gap-check" style="flex-shrink:0; width:18px; height:18px; border-radius:4px; border:2px solid #d56439; display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:white; background:transparent; transition: all 0.2s;"></span>
+            <p style="margin: 0; font-size: 14px; color: #203445;">The world kept moving, and you were expected to keep up</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live response counter -->
+      <div id="gap-counter" style="display:none; background: linear-gradient(135deg, #203445, #2d5068); border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; color: white;">
+        <p style="margin: 0; font-size: 14px; color: rgba(255,255,255,0.9);">You recognized <strong id="gap-count" style="color: #acc95d; font-size: 18px;">0</strong> of 6 of these gaps in your own experience.</p>
+        <p id="gap-message" style="margin: 8px 0 0; font-size: 13px; color: rgba(255,255,255,0.8);"></p>
+      </div>
+
+      <h4 style="color: #203445; margin-bottom: 16px;">What do you notice looking at what you selected? What did you most need that you didn't get?</h4>
+
+      <div style="border: 1px solid #5da0af; border-radius: 6px; margin-bottom: 12px; overflow: hidden;">
+        <button onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'"
+          style="width:100%; text-align:left; padding:12px 16px; background:#e8f4f6; border:none; cursor:pointer; font-size:14px; color:#3d7f8f; font-family:inherit;">
+          💡 Not sure where to start? Try one of these...
+        </button>
+        <div style="display:none; padding:14px 16px; background:#f0f9fb;">
+          <p style="margin:0 0 8px; font-size:14px; color:#203445;">Some people find themselves writing things like:</p>
+          <ul style="margin:0; padding-left:20px; font-size:14px; color:#203445; line-height:2;">
+            <li>"I needed someone to just say... this is a real loss. No one did."</li>
+            <li>"I was back on LinkedIn within a week because that's what you do. I hadn't cried yet."</li>
+            <li>"The silver linings felt like being told to smile at a funeral."</li>
+            <li>"I needed time. What I got was a severance package and a deadline."</li>
+          </ul>
+        </div>
+      </div>
+
+      <textarea id="reflection-contrast" placeholder="Your reflections stay on your device. You don't need to share this with anyone."
+        onfocus="this.style.borderColor='#5da0af'" onblur="this.style.borderColor='#dee2e6'"></textarea>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STEP 4... Name It: Video -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="step-4" class="step-section">
+    <h2>Name It</h2>
+    <p style="color: #6c757d; font-size: 15px; font-style: italic; margin-bottom: 28px;">Watch when you're ready. There's no rush.</p>
+
+    <!-- Dark navy video player -->
+    <div style="background: linear-gradient(135deg, #203445, #2d5068); border-radius: 12px; padding: 28px 24px; margin: 0 0 24px 0; text-align: center;">
+      <h3 style="color: white; font-size: 20px; margin-bottom: 24px; font-weight: 600;">The Grief That Doesn't Get Named</h3>
+
+      <!-- Video container... swap src for GitHub-hosted file -->
+      <div style="position: relative; width: 100%; padding-bottom: 56.25%; border-radius: 8px; overflow: hidden; background: #0d1f2d; margin-bottom: 20px;">
+        <video
+          id="name-it-video"
+          controls
+          preload="metadata"
+          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"
+          poster=""
+        >
+          <!-- Replace this src with the GitHub raw URL once uploaded -->
+          <source src="name-it-video.mp4" type="video/mp4">
+          <p style="color: rgba(255,255,255,0.6); padding: 20px; font-size: 14px;">Your browser doesn't support video playback. Please update your browser to watch this.</p>
+        </video>
+      </div>
+
+      <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+        <!-- Update filename below to match what's uploaded to GitHub -->
+        Video file: <code style="color: #acc95d;">name-it-video.mp4</code>... upload to GitHub root alongside this file
+      </p>
+    </div>
+
+    <div style="background: #e8f4f6; border-radius: 6px; padding: 16px 20px; margin: 0;">
+      <p style="margin: 0; color: #203445;">When you're ready, continue to the next section.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STEP 4... Identity Grief: Who Were You There? -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="step-5" class="step-section">
+    <h2>Who Were You There?</h2>
+
+    <p>We've been talking about what you lost. Now I want to sit with something that often gets skipped over: <em>who</em> you lost.</p>
+
+    <div style="border-left: 4px solid #dfb852; background: #fef9f2; padding: 24px; border-radius: 6px; margin: 20px 0;">
+      <h3 style="color: #d4a017; margin-bottom: 4px;">💡 Key Concept: Identity Grief</h3>
+      <p style="color: #6c757d; font-size: 14px; font-style: italic; margin-bottom: 16px;">Take as much time as you want to think and write</p>
+      <p>Your job... or your career... wasn't just a paycheck or a set of tasks. It was a context in which a version of you existed. A version who had a title, a role, a place in the room. Who knew things. Who was needed. Who belonged somewhere, every single day.</p>
+      <p>When that ended... whether through a layoff, a termination, or a retirement that came before you were ready... that version of you lost their stage. And that is a genuine grief.</p>
+      <p>For those who were pushed into early retirement, this loss can carry an additional dimension: <strong>the unfinished chapter.</strong> You still had things you wanted to do, contribute, and become. The loss isn't just of what existed... it's of what was still possible.</p>
+    </div>
+
+    <p>Below are some of the distinct identity losses that job loss and forced early retirement can carry. <strong>Tap any that feel true for you to highlight them.</strong></p>
+
+    <div class="identity-grid" id="identity-grid">
+      <div class="identity-card" onclick="toggleIdentityCard(this)">
+        <div class="card-label">Title & Status</div>
+        <div class="card-desc">The words that told the world who you were professionally</div>
+      </div>
+      <div class="identity-card" onclick="toggleIdentityCard(this)">
+        <div class="card-label">Routine & Structure</div>
+        <div class="card-desc">A shape to your days, a reason to get up and show up</div>
+      </div>
+      <div class="identity-card" onclick="toggleIdentityCard(this)">
+        <div class="card-label">Belonging</div>
+        <div class="card-desc">A team, colleagues, the small rituals of shared work</div>
+      </div>
+      <div class="identity-card" onclick="toggleIdentityCard(this)">
+        <div class="card-label">Purpose</div>
+        <div class="card-desc">The sense that your work mattered... that it was going somewhere</div>
+      </div>
+      <div class="identity-card" onclick="toggleIdentityCard(this)">
+        <div class="card-label">Expertise</div>
+        <div class="card-desc">Being the person who knew things, who was consulted, who was good</div>
+      </div>
+      <div class="identity-card" onclick="toggleIdentityCard(this)">
+        <div class="card-label">Security</div>
+        <div class="card-desc">The ability to plan, to breathe, to feel stable about the future</div>
+      </div>
+      <div class="identity-card" onclick="toggleIdentityCard(this)">
+        <div class="card-label">Pride</div>
+        <div class="card-desc">Something you were genuinely proud to do, or to be known for doing</div>
+      </div>
+      <div class="identity-card" onclick="toggleIdentityCard(this)">
+        <div class="card-label">The Unfinished Chapter</div>
+        <div class="card-desc">Things you still wanted to do, build, or become... before it was time</div>
+      </div>
+      <div class="identity-card" onclick="toggleIdentityCard(this)">
+        <div class="card-label">Being Seen as Relevant</div>
+        <div class="card-desc">The sense that your experience and wisdom were still valued and needed</div>
+      </div>
+    </div>
+
+    <div style="border-left: 4px solid #d56439; background: #f8f9fa; padding: 24px; border-radius: 6px; margin: 24px 0;">
+      <h3 style="color: #d56439; margin-bottom: 4px;">Pause & Reflect</h3>
+      <p style="color: #6c757d; font-size: 14px; font-style: italic; margin-bottom: 16px;">Take as much time as you want to think and write</p>
+      <p style="margin-bottom: 16px;">Look at what you highlighted above. These aren't abstract losses... they were real parts of a life you were living every day.</p>
+      <h4 style="color: #203445; margin-bottom: 16px;">Which of the losses you highlighted feels the heaviest right now? What did that part of your identity mean to you... and what has it been like to carry its absence?</h4>
+
+      <div style="border: 1px solid #5da0af; border-radius: 6px; margin-bottom: 12px; overflow: hidden;">
+        <button onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'"
+          style="width:100%; text-align:left; padding:12px 16px; background:#e8f4f6; border:none; cursor:pointer; font-size:14px; color:#3d7f8f; font-family:inherit;">
+          💡 Not sure where to start? Try one of these...
+        </button>
+        <div style="display:none; padding:14px 16px; background:#f0f9fb;">
+          <p style="margin:0 0 8px; font-size:14px; color:#203445;">Some people find themselves writing things like:</p>
+          <ul style="margin:0; padding-left:20px; font-size:14px; color:#203445; line-height:2;">
+            <li>"I didn't realize how much of my identity was wrapped up in being the person who knew things. Now I feel invisible."</li>
+            <li>"It was the routine I miss most. Without it, I don't know who I am in the morning."</li>
+            <li>"I lost my team. Those people were my people. I didn't expect to grieve them this much."</li>
+            <li>"I had so much more I wanted to build. That chapter isn't supposed to be over yet."</li>
+          </ul>
+        </div>
+      </div>
+
+      <textarea id="reflection-identity" placeholder="Your reflections stay on your device. You don't need to share this with anyone."
+        onfocus="this.style.borderColor='#5da0af'" onblur="this.style.borderColor='#dee2e6'"></textarea>
+    </div>
+
+    <div style="background: #e8f4f6; border-radius: 6px; padding: 16px 20px; margin: 16px 0;">
+      <p style="margin: 0;"><strong>Gentle reminder:</strong> Grieving these losses doesn't mean you're defined by your job. It means you were a full human being in that role... and full human beings grieve when something real ends.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STEP 6... Moral Injury -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="step-6" class="step-section">
+    <h2>When It Wasn't Just a Layoff... or Just a Retirement</h2>
+
+    <p>I want to pause here and name something that some of you are carrying that goes beyond the loss itself.</p>
+    <p>For some people, the job loss came with a specific kind of wound... not just <em>this is over,</em> but <em>this was wrong.</em> A betrayal. A broken promise. Retaliation in disguise. Being let go after years of loyalty with two weeks' notice and a generic HR email. Watching someone else take credit for your work and then watching yourself be pushed out. Being told it was "about the budget" when you knew... you <em>knew</em>... it was about something else entirely.</p>
+    <p>And for some people who were pushed into early retirement: the wound is that it was never actually a choice. It was framed as an opportunity, a generous offer, the right moment... but underneath it was a managed exit. The door was shown to you before you were ready to walk through it, and no one in the room acknowledged that.</p>
+    <p>If any of that is your story, what you're carrying isn't just grief. It may also be moral injury.</p>
+
+    <div style="border-left: 4px solid #dfb852; background: #fef9f2; padding: 24px; border-radius: 6px; margin: 20px 0;">
+      <h3 style="color: #d4a017; margin-bottom: 4px;">💡 Key Concept: Moral Injury</h3>
+      <p style="color: #6c757d; font-size: 14px; font-style: italic; margin-bottom: 16px;">Take as much time as you want to think and write</p>
+      <p>Originally studied in combat veterans, <strong>moral injury</strong> describes the deep psychological wound that comes from participating in, witnessing, or being the victim of actions that violate your core moral beliefs.</p>
+      <p>In workplace and career contexts, it can look like:</p>
+      <ul style="margin: 12px 0 12px 20px; line-height: 2; color: #203445;">
+        <li>Being laid off after being told your role was secure</li>
+        <li>Being managed out after raising legitimate concerns</li>
+        <li>Watching harmful, unethical, or discriminatory practices go unaddressed while you were penalized for objecting</li>
+        <li>Having your contributions erased, minimized, or taken from you</li>
+        <li>Being treated as disposable after years of genuine investment and sacrifice</li>
+        <li>Being "offered" early retirement under pressure... with the implicit message that you were no longer wanted... and having that framed as a gift</li>
+        <li>Being aged out of a role you were still capable of doing, with no honest acknowledgment of what was really happening</li>
+      </ul>
+      <p>Moral injury carries a different weight than ordinary loss. It includes grief, but it also includes <strong>a rupture in the belief that the world is fair, that good work is recognized, that institutions can be trusted.</strong> That rupture takes longer to heal... and it heals differently.</p>
+      <p>Naming it doesn't mean staying in anger forever. It means acknowledging that what happened was genuinely harmful... not something you imagined, not something you need to minimize in order to "move on."</p>
+    </div>
+
+    <div style="border-left: 4px solid #d56439; background: #f8f9fa; padding: 24px; border-radius: 6px; margin: 24px 0;">
+      <h3 style="color: #d56439; margin-bottom: 4px;">Writing Exercise: The Unsent Letter</h3>
+      <p style="color: #6c757d; font-size: 14px; font-style: italic; margin-bottom: 16px;">Take as much time as you want to think and write... only go here if it feels true for you</p>
+      <p style="margin-bottom: 16px;">This exercise is for people who felt a resonance with what you just read. If your loss was genuinely neutral... no betrayal, no violation underneath it... you can move on. But if something stirred, this is for you.</p>
+      <p style="margin-bottom: 20px;">You're going to write a letter you will never send. It can be to a person... a manager, an executive, a board member, a colleague who stayed silent. It can be to an institution, a company, a system. It can be to whoever you believe caused this, or whoever you believe should have protected you and didn't.</p>
+
+      <div style="background: #fef9f2; border: 1px solid #dfb852; border-radius: 6px; padding: 16px 18px; margin-bottom: 20px;">
+        <p style="margin: 0; font-size: 14px; color: #203445;"><strong style="color: #d4a017;">A few things to consider saying:</strong> What they did. What it cost you. What you wish they understood. What you never got to say out loud.</p>
+        <p style="margin: 10px 0 0; font-size: 13px; color: #6c757d; font-style: italic;">You don't have to be fair, measured, or forgiving. This letter is for you.</p>
+      </div>
+
+      <div style="border: 1px solid #5da0af; border-radius: 6px; margin-bottom: 12px; overflow: hidden;">
+        <button onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'"
+          style="width:100%; text-align:left; padding:12px 16px; background:#e8f4f6; border:none; cursor:pointer; font-size:14px; color:#3d7f8f; font-family:inherit;">
+          💡 Not sure how to begin? Try one of these opening lines...
+        </button>
+        <div style="display:none; padding:14px 16px; background:#f0f9fb;">
+          <ul style="margin:0; padding-left:20px; font-size:14px; color:#203445; line-height:2.2;">
+            <li><em>"I need you to know what that decision actually did to me..."</em></li>
+            <li><em>"You called it a restructure. Here is what it really was..."</em></li>
+            <li><em>"You told me I was valued. I want to tell you what that word cost me when you took it back..."</em></li>
+            <li><em>"I built something real there. And you let me go like it didn't matter..."</em></li>
+            <li><em>"You framed it as an opportunity. I want to tell you what it actually felt like..."</em></li>
+          </ul>
+        </div>
+      </div>
+
+      <textarea id="reflection-moral-injury" rows="10" placeholder="Dear ___,&#10;&#10;Your reflections stay on your device. This letter is for you... it will never be sent."
+        onfocus="this.style.borderColor='#5da0af'" onblur="this.style.borderColor='#dee2e6'"></textarea>
+    </div>
+
+    <div style="background: #e8f4f6; border-radius: 6px; padding: 16px 20px; margin: 16px 0;">
+      <p style="margin: 0;"><strong>Gentle reminder:</strong> Naming what was wrong is not the same as being trapped by it. You can hold "this was unjust" and "I am still moving forward" at the same time. Both are true. Whether this was a layoff, a termination, or a retirement you didn't fully choose... if there was a violation underneath it, that violation deserves to be named. Not buried under a job search or a retirement to-do list.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STEP 10... When Grief Needs More Than a Module -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="step-7" class="step-section">
+    <h2>When Grief Needs a Human Being</h2>
+
+    <p>I've been doing this work long enough to know that some of what you're carrying in this module is more than a curriculum can hold. And I want to be honest with you about that... because you deserve honesty, not just reassurance.</p>
+
+    <div style="border-left: 4px solid #dfb852; background: #fef9f2; padding: 24px; border-radius: 6px; margin: 20px 0;">
+      <h3 style="color: #d4a017; margin-bottom: 4px;">💡 When Grief Becomes Complicated</h3>
+      <p style="color: #6c757d; font-size: 14px; font-style: italic; margin-bottom: 16px;">Take as much time as you want to think and write</p>
+      <p>Grief that goes on for an extended period... or grief that is significantly disrupting your daily functioning, your relationships, your physical health, or your ability to care for yourself... is sometimes called <strong>complicated grief</strong> or prolonged grief. It's not a character flaw. It doesn't mean you're broken. It means the loss hit something deep, or the conditions for processing it haven't been present.</p>
+      <p>Some signs that grief may benefit from professional support:</p>
+      <ul style="margin: 12px 0 12px 20px; line-height: 2; color: #203445;">
+        <li>Persistent inability to function at basic daily tasks for weeks or months</li>
+        <li>Feeling that your future is meaningless or that you have nothing left to offer</li>
+        <li>Using substances to manage the pain</li>
+        <li>Thoughts of self-harm or not wanting to be here</li>
+        <li>A grief so heavy that it hasn't moved at all despite time passing</li>
+        <li>Social withdrawal that's becoming more and more complete</li>
+      </ul>
+      <p>This program is not a substitute for therapy. It's a bridge... to understanding, to community, to tools. For some people, it's enough. For others, it's a starting point.</p>
+    </div>
+
+    <div style="background: linear-gradient(135deg, #203445, #2d5068); border-radius: 8px; padding: 24px; margin: 20px 0; color: white;">
+      <h3 style="color: white; margin-bottom: 12px;">You don't have to carry this alone.</h3>
+      <p style="color: rgba(255,255,255,0.9); margin-bottom: 16px;">If any of what you read above resonated... even quietly... please consider reaching out to a mental health professional. This isn't about being in crisis. It's about getting the right support for the weight you're carrying.</p>
+      <p style="color: rgba(255,255,255,0.9); margin-bottom: 16px;">Our drop-in sessions are one place to start. They're free, low-barrier, and run by people who understand what job loss actually costs.</p>
+      <a href="https://www.unbrokenpathways.org/registration" target="_blank"
+        style="display: inline-block; background: #5da0af; color: white; padding: 12px 24px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 15px;">
+        Join a Drop-In Session →
+      </a>
+      <p style="color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 16px; margin-bottom: 0;">If you're in crisis right now, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting <strong style="color:white;">988</strong>.</p>
+    </div>
+
+    <div style="border-left: 4px solid #d56439; background: #f8f9fa; padding: 24px; border-radius: 6px; margin: 24px 0;">
+      <h3 style="color: #d56439; margin-bottom: 4px;">Pause & Reflect</h3>
+      <p style="color: #6c757d; font-size: 14px; font-style: italic; margin-bottom: 16px;">Take as much time as you want to think and write</p>
+      <p style="margin-bottom: 12px;">Noticing where you are... honestly... is its own form of courage.</p>
+      <h4 style="color: #203445; margin-bottom: 16px;">How are you actually doing right now... not for anyone else's benefit, just for yours? Is there any part of what you read in this step that you recognized in yourself?</h4>
+
+      <textarea id="reflection-support" placeholder="Your reflections stay on your device. You don't need to share this with anyone."
+        onfocus="this.style.borderColor='#5da0af'" onblur="this.style.borderColor='#dee2e6'"></textarea>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STEP 11... Integration: What You're Actually Carrying -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="step-8" class="step-section">
+    <h2>What You're Actually Carrying</h2>
+
+    <p>We've covered a lot in this module. Before we close, I want to bring it together... not to wrap it up neatly, but to give you language for the full weight of what you've been living with.</p>
+
+    <div class="key-insight">
+      <h3>The Complexity of This Loss</h3>
+      <p>Job loss and forced early retirement can carry all of this at once:</p>
+      <ul style="margin: 12px 0 12px 20px; line-height: 2; color: rgba(255,255,255,0.9);">
+        <li><strong style="color:white;">Ambiguous loss</strong>... a grief with no ritual, no named moment, no socially sanctioned space to mourn</li>
+        <li><strong style="color:white;">A ritual gap</strong>... the absence of the conditions that help recognized grief actually move: acknowledgment, time, witness, ceremony</li>
+        <li><strong style="color:white;">Identity grief</strong>... the loss not just of a job, but of a version of yourself that existed there: your title, your belonging, your purpose, your expertise</li>
+        <li><strong style="color:white;">Moral injury</strong>... for some, a wound underneath the loss itself: a violation of what you believed was right, a betrayal that goes beyond the ending</li>
+      </ul>
+      <p>You are not struggling because you're weak. You are struggling because you're carrying something genuinely complex... a loss that our culture under-names and under-supports, whether it came in the form of a layoff, a termination, or a retirement you didn't fully choose. You've been doing this largely without the support this kind of loss deserves.</p>
+    </div>
+
+    <div style="border-left: 4px solid #d56439; background: #f8f9fa; padding: 24px; border-radius: 6px; margin: 24px 0;">
+      <h3 style="color: #d56439; margin-bottom: 4px;">Pause & Reflect</h3>
+      <p style="color: #6c757d; font-size: 14px; font-style: italic; margin-bottom: 16px;">Take as much time as you want to think and write</p>
+      <p style="margin-bottom: 12px;">Looking at that list above:</p>
+      <h4 style="color: #203445; margin-bottom: 16px;">Which of these has been the hardest to carry? What has it been like to finally have language for it?</h4>
+
+      <div style="border: 1px solid #5da0af; border-radius: 6px; margin-bottom: 12px; overflow: hidden;">
+        <button onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'"
+          style="width:100%; text-align:left; padding:12px 16px; background:#e8f4f6; border:none; cursor:pointer; font-size:14px; color:#3d7f8f; font-family:inherit;">
+          💡 Not sure where to start? Try one of these...
+        </button>
+        <div style="display:none; padding:14px 16px; background:#f0f9fb;">
+          <p style="margin:0 0 8px; font-size:14px; color:#203445;">Some people notice things like:</p>
+          <ul style="margin:0; padding-left:20px; font-size:14px; color:#203445; line-height:2;">
+            <li>"The identity grief one hit me. I didn't realize how much of my sense of self was in that role."</li>
+            <li>"Reading about moral injury felt like someone finally said out loud what happened to me."</li>
+            <li>"I've been so ashamed of not being over it. The non-linear grief piece gave me permission."</li>
+            <li>"My body has been a mess and I thought I was just falling apart."</li>
+            <li>"The early retirement section... no one has ever called that grief before. But it is."</li>
+            <li>"The 'Unfinished Chapter' card. I'm still not done. I had more to give."</li>
+          </ul>
+        </div>
+      </div>
+
+      <textarea id="reflection-integration" placeholder="Your reflections stay on your device. You don't need to share this with anyone."
+        onfocus="this.style.borderColor='#5da0af'" onblur="this.style.borderColor='#dee2e6'"></textarea>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STEP 12... Closing + Download + Next Module -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="step-9" class="step-section">
+    <h2>You Did Something Hard Today</h2>
+
+    <p>I mean that. Looking directly at what you're carrying... without flinching, without minimizing... takes real courage. You did that today.</p>
+
+    <p>You now have language for what you've been living with. That's not a small thing. Language is the beginning of understanding, and understanding is the beginning of moving through.</p>
+
+    <div style="border-left: 4px solid #acc95d; background: #f0f9f7; padding: 20px; border-radius: 6px; margin: 24px 0;">
+      <strong style="color: #6b8f2e;">What you named today:</strong>
+      <ul style="margin: 10px 0 0 20px; line-height: 2; color: #203445;">
+        <li>Why job loss and forced early retirement are forms of ambiguous loss... grief without a funeral</li>
+        <li>The ritual gap: what recognized grief receives, and what you didn't get</li>
+        <li>The specific identities you lost alongside your role</li>
+        <li>The possibility of moral injury... and what it means if that's part of your story</li>
+        <li>When to consider reaching out for more support</li>
+      </ul>
+    </div>
+
+    <div style="border-left: 4px solid #5da0af; background: #e8f4f6; padding: 18px 20px; border-radius: 6px; margin: 20px 0;">
+      <strong>What's next: Module 2... The Brain Science of Trauma</strong>
+      <p style="margin: 8px 0 0;">In Module 2, we go deeper into the biology of what you're experiencing... including how trauma and chronic stress actually change the brain, why your body has been responding the way it has, and what begins to shift that. The grief you named today becomes the foundation for Module 2's nervous system work.</p>
+    </div>
+
+    <div style="background: linear-gradient(135deg, #203445, #2d5068); border-radius: 12px; padding: 28px 24px; margin: 24px 0; text-align: center; color: white;">
+      <p style="color: rgba(255,255,255,0.6); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;">Before you go</p>
+      <h3 style="color: white; font-size: 20px; margin-bottom: 12px;">Keep what you wrote today.</h3>
+      <p style="color: rgba(255,255,255,0.85); font-size: 15px; margin-bottom: 24px; max-width: 380px; margin-left: auto; margin-right: auto;">Your reflections only live here, on this screen. Download a copy to hold onto... for yourself, for your therapist, for whatever comes next.</p>
+      <button onclick="downloadPDF()" style="display: inline-flex; align-items: center; gap: 10px; background: #acc95d; color: #203445; border: none; border-radius: 8px; padding: 14px 28px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.2s;"
+        onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+        <span style="font-size: 20px;">⬇</span> Download My Reflections as PDF
+      </button>
+      <p style="color: rgba(255,255,255,0.45); font-size: 12px; margin-top: 16px; margin-bottom: 0;">Saved privately on your device. Nothing leaves this page.</p>
+    </div>
+
+    <div style="background: linear-gradient(135deg, #203445, #2d5068); border-radius: 8px; padding: 24px; margin: 20px 0; text-align: center; color: white;">
+      <h3 style="color: white; margin-bottom: 8px;">You don't have to process this alone.</h3>
+      <p style="color: rgba(255,255,255,0.9); margin-bottom: 16px;">Our free drop-in sessions are a space to talk, breathe, and be in community with others who understand this.</p>
+      <a href="https://www.unbrokenpathways.org/registration" target="_blank"
+        style="display: inline-block; background: #5da0af; color: white; padding: 12px 28px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 16px;">
+        Join a Drop-In Session →
+      </a>
+    </div>
+  </div>
+
+  <!-- Copyright Footer -->
+  <div style="text-align: center; padding: 24px 20px 8px; margin-top: 16px; border-top: 1px solid #e8ecef;">
+    <p style="margin: 0; font-size: 12px; color: #9aa5b1; line-height: 1.7;">
+      Created with care by Places to Thrive, Inc. © 2025 | The UnBroken Project | <a href="https://unbrokenpathways.org" target="_blank" style="color: #5da0af; text-decoration: none;">unbrokenpathways.org</a>
+    </p>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav-buttons">
+    <button class="btn btn-secondary btn-invisible" id="prev-btn" onclick="prevStep()">← Previous</button>
+    <button class="btn btn-primary" id="next-btn" onclick="nextStep()">Continue →</button>
+  </div>
+</div>
+
+<script>
+  const TOTAL_STEPS = 9;
+  let currentStep = 1;
+
+  function scrollToTop() {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    const container = document.querySelector('.container');
+    if (container) container.scrollTop = 0;
+  }
+
+  function showStep(n) {
+    document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-' + n).classList.add('active');
+    document.getElementById('progress-bar').style.width = (n / TOTAL_STEPS * 100) + '%';
+    document.getElementById('step-counter').textContent = 'Step ' + n + ' of ' + TOTAL_STEPS;
+    document.getElementById('prev-btn').classList.toggle('btn-invisible', n === 1);
+    document.getElementById('next-btn').textContent = n === TOTAL_STEPS ? 'Finish' : 'Continue →';
+    setTimeout(scrollToTop, 50);
+  }
+
+  function nextStep() {
+    if (currentStep < TOTAL_STEPS) { currentStep++; showStep(currentStep); }
+  }
+
+  function prevStep() {
+    if (currentStep > 1) { currentStep--; showStep(currentStep); }
+  }
+
+  function toggleIdentityCard(card) {
+    card.classList.toggle('selected');
+  }
+
+  function toggleGapCell(cell) {
+    const isSelected = cell.classList.toggle('selected');
+    const check = cell.querySelector('.gap-check');
+    if (isSelected) {
+      cell.style.background = '#f5d5c5';
+      cell.style.borderLeft = '3px solid #d56439';
+      check.style.background = '#d56439';
+      check.textContent = '✓';
+    } else {
+      cell.style.background = '#fdf3ee';
+      cell.style.borderLeft = 'none';
+      check.style.background = 'transparent';
+      check.textContent = '';
+    }
+    updateGapCounter();
+  }
+
+  function updateGapCounter() {
+    const selected = document.querySelectorAll('.gap-cell.selected').length;
+    const counter = document.getElementById('gap-counter');
+    const countEl = document.getElementById('gap-count');
+    const messageEl = document.getElementById('gap-message');
+    if (!counter || !countEl || !messageEl) return;
+    countEl.textContent = selected;
+    counter.style.display = selected > 0 ? 'block' : 'none';
+    const messages = {
+      1: "Even one of these gaps is significant. Grief without any ritual or recognition is harder to carry.",
+      2: "Two gaps. The absence of acknowledgment compounds the loss itself.",
+      3: "Three. You were grieving without the conditions grief needs to move.",
+      4: "Four of these gaps were yours. That's a lot of weight to carry without support.",
+      5: "Five. You were almost completely without the scaffolding that recognized grief receives.",
+      6: "All six. You received none of what grief needs to be processed. That's not a small thing... and it explains a great deal."
+    };
+    messageEl.textContent = messages[selected] || '';
+  }
+
+  // PDF Download
+  function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const margin = 20;
+    const pageWidth = 210;
+    const maxWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    function addText(text, size, bold, color, wrap) {
+      doc.setFontSize(size);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      if (color) doc.setTextColor(...color);
+      else doc.setTextColor(32, 52, 69);
+      if (wrap) {
+        const lines = doc.splitTextToSize(text, maxWidth);
+        lines.forEach(line => {
+          if (y > 270) { doc.addPage(); y = margin; }
+          doc.text(line, margin, y);
+          y += size * 0.45;
+        });
+      } else {
+        if (y > 270) { doc.addPage(); y = margin; }
+        doc.text(text, margin, y);
+        y += size * 0.45;
+      }
+      y += 2;
+    }
+
+    addText('The Grief That Doesn\'t Look Like Grief', 18, true, [32, 52, 69], false);
+    addText('UnBroken', 12, false, [93, 160, 175], false);
+    addText(new Date().toLocaleDateString(), 10, false, [108, 117, 125], false);
+    y += 6;
+
+    const reflections = [
+      { label: 'The Ritual Gap... what I noticed and what I needed:', id: 'reflection-contrast' },
+      { label: 'Identity losses... what felt heaviest and what it has been like to carry:', id: 'reflection-identity' },
+      { label: 'The violation I\'m still carrying (if applicable):', id: 'reflection-moral-injury' },
+      { label: 'How I\'m actually doing right now:', id: 'reflection-support' },
+      { label: 'What has been hardest to carry... and what naming it felt like:', id: 'reflection-integration' },
+    ];
+
+    reflections.forEach(r => {
+      const val = document.getElementById(r.id)?.value?.trim();
+      if (val) {
+        addText(r.label, 11, true, [32, 52, 69], true);
+        addText(val, 10, false, [50, 50, 50], true);
+        y += 4;
+      }
+    });
+
+    // Stamp footer on every page
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(154, 165, 177);
+      const footerText = 'Created with care by Places to Thrive, Inc. \u00A9 2025  |  The UnBroken Project  |  unbrokenpathways.org';
+      const textWidth = doc.getTextWidth(footerText);
+      doc.text(footerText, (210 - textWidth) / 2, 287);
+      doc.setDrawColor(232, 236, 239);
+      doc.setLineWidth(0.3);
+      doc.line(20, 283, 190, 283);
+    }
+
+    doc.save('unbroken-the-grief-that-doesnt-look-like-grief.pdf');
+  }
+
+  showStep(1);
+</script>
+</body>
+</html>
