@@ -163,7 +163,7 @@ video { width: 100%; border-radius: 8px; display: block; }
     <div class="step" id="step-3">
       <span class="tag">Exercise</span>
       <h1>The Ritual Gap</h1>
-      <div class="step-body">
+      <div class="step-body" data-req-group=".gap-cell-b.selected">
         <p style="font-size:0.78rem;">Two columns: what our culture offers when grief is recognized, and what most people actually get after job loss or forced retirement. <strong>Tap any row on the right that feels true for you.</strong></p>
         <div class="gap-row"><div class="gap-cell-a">People reach out to acknowledge your pain</div><div class="gap-cell-b" onclick="toggleGap(this)"><span class="gap-check"></span>People asked what you're going to do next</div></div>
         <div class="gap-row"><div class="gap-cell-a">A named ritual, a moment of collective acknowledgment</div><div class="gap-cell-b" onclick="toggleGap(this)"><span class="gap-check"></span>An exit meeting, an email, a box to pack</div></div>
@@ -228,7 +228,7 @@ video { width: 100%; border-radius: 8px; display: block; }
       <h1>What You Lost Alongside the Job</h1>
       <div class="step-body">
         <p style="font-size:0.78rem;"><strong>Tap any that feel true for you.</strong></p>
-        <div class="identity-grid">
+        <div class="identity-grid" data-req-group=".identity-card.selected">
           <div class="identity-card" onclick="this.classList.toggle('selected')"><div class="card-label">Title &amp; Status</div><div class="card-desc">The words that told the world who you were</div></div>
           <div class="identity-card" onclick="this.classList.toggle('selected')"><div class="card-label">Routine &amp; Structure</div><div class="card-desc">A shape to your days, a reason to show up</div></div>
           <div class="identity-card" onclick="this.classList.toggle('selected')"><div class="card-label">Belonging</div><div class="card-desc">A team, colleagues, shared rituals</div></div>
@@ -472,6 +472,200 @@ function downloadPDF() {
 
   doc.save('unbroken-the-grief-that-doesnt-look-like-grief.pdf');
 }
+</script>
+<script>
+window.REQ_CONFIG = { screens: '.step', active: '.step.active', forward: '#btn-next' };
+</script>
+<style>
+/* Required-answer guard */
+.req-missing { outline: 2px solid #c0392b !important; outline-offset: 2px; border-radius: 8px; }
+.req-msg { display: none; flex-shrink: 0; margin: 0 1rem 0.45rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: #fdf0ef; border: 1px solid #e8b4b0; color: #a93226; font-family: inherit; font-size: 0.74rem; line-height: 1.35; text-align: left; }
+.req-msg.show { display: block; }
+.req-locked { opacity: 0.55; }
+</style>
+<script>
+/* Required-answer guard: the forward/submit button only works once every
+   visible question in the current screen is answered.
+   - textareas, text/email inputs and selects must be filled
+   - radio groups need a choice; sliders must be moved or tapped
+   - [data-req-group="<selector>"] needs at least one matching child (chips, checkboxes, pips)
+   - [data-req-custom="<name>"] uses window.REQ_CUSTOM[name]()
+   - [data-optional] opts a field out (an optional email must still be valid if filled)
+   - [data-req-always] keeps a field required while hidden (e.g. one-at-a-time questions)
+   - [data-req-scope] limits an inner "Next" button to its own block
+   - [data-req-final] on a submit button re-checks every screen */
+(function () {
+  var CFG = Object.assign({
+    screens: '.screen',
+    active: '.screen.active',
+    forward: '.nav-bar .btn-primary',
+    msg: 'Please answer every question on this screen before continuing.'
+  }, window.REQ_CONFIG || {});
+  var CUSTOM = window.REQ_CUSTOM || {};
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var shown = [];
+
+  function hiddenIn(node, root) {
+    for (var n = node; n && n !== root; n = n.parentElement) {
+      if (getComputedStyle(n).display === 'none') return true;
+    }
+    return false;
+  }
+  function skip(el, root) {
+    if (el.closest('[data-optional]')) return true;
+    if (el.closest('[data-req-always]')) return false;
+    return hiddenIn(el.closest('label') || el, root);
+  }
+  function filled(el) {
+    if (el.tagName === 'SELECT') return !!el.value;
+    var v = el.value.trim();
+    if (!v) return false;
+    return el.type !== 'email' || EMAIL_RE.test(v);
+  }
+
+  function requirements(root) {
+    var items = [];
+    root.querySelectorAll('textarea, input[type="text"], input[type="email"], select').forEach(function (el) {
+      if (el.type === 'email' && el.closest('[data-optional]') && !hiddenIn(el, root)) {
+        items.push({ mark: el, ok: function () { return !el.value.trim() || EMAIL_RE.test(el.value.trim()); } });
+        return;
+      }
+      if (skip(el, root)) return;
+      items.push({ mark: el, ok: function () { return filled(el); } });
+    });
+    var radios = {};
+    root.querySelectorAll('input[type="radio"][name]').forEach(function (el) {
+      if (skip(el, root) || radios[el.name]) return;
+      radios[el.name] = true;
+      var name = el.name;
+      var label = el.closest('label') || el;
+      items.push({
+        mark: label.parentElement || label,
+        ok: function () { return !!root.querySelector('input[type="radio"][name="' + CSS.escape(name) + '"]:checked'); }
+      });
+    });
+    root.querySelectorAll('input[type="range"]').forEach(function (el) {
+      if (skip(el, root)) return;
+      items.push({ mark: el.parentElement, ok: function () { return el.dataset.touched === '1'; } });
+    });
+    root.querySelectorAll('[data-req-group]').forEach(function (el) {
+      if (el.closest('[data-optional]') || (!el.closest('[data-req-always]') && hiddenIn(el, root))) return;
+      var sel = el.getAttribute('data-req-group');
+      items.push({ mark: el, ok: function () { return !!el.querySelector(sel); } });
+    });
+    root.querySelectorAll('[data-req-custom]').forEach(function (el) {
+      if (hiddenIn(el, root)) return;
+      var fn = CUSTOM[el.getAttribute('data-req-custom')];
+      if (fn) items.push({ mark: el, ok: function () { return !!fn(el); } });
+    });
+    return items;
+  }
+  function missing(root) {
+    return requirements(root).filter(function (r) { return !r.ok(); });
+  }
+
+  function activeScreen() { return document.querySelector(CFG.active); }
+  function scopeFor(btn) {
+    return btn.closest('[data-req-scope]') || btn.closest(CFG.screens) || activeScreen();
+  }
+  function msgBox(btn) {
+    var host = btn.closest('[data-req-scope]') ? btn : (btn.closest('.nav-bar, .nav') || btn);
+    var prev = host.previousElementSibling;
+    if (prev && prev.classList.contains('req-msg')) return prev;
+    var box = document.createElement('div');
+    box.className = 'req-msg';
+    box.setAttribute('role', 'alert');
+    host.parentNode.insertBefore(box, host);
+    return box;
+  }
+  function clearShown() {
+    shown.forEach(function (r) { r.mark.classList.remove('req-missing'); });
+    shown = [];
+  }
+
+  function block(btn, list, text) {
+    if (list.every(function (r) { return r.mark.matches('input[type="email"]'); })) {
+      text = 'Please enter a valid email address' + (list[0].mark.closest('[data-optional]') ? ', or leave it blank.' : '.');
+    }
+    clearShown();
+    list.forEach(function (r) { r.mark.classList.add('req-missing'); });
+    shown = list;
+    var box = msgBox(btn);
+    box.textContent = text;
+    box.classList.add('show');
+    var first = list[0].mark;
+    if (first.getClientRects().length) {
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (first.matches('textarea, input, select')) first.focus({ preventScroll: true });
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest(CFG.forward + ', .question-next, [data-req-final]');
+    if (!btn || btn.disabled) return;
+    var screen = activeScreen();
+    if (!screen) return;
+    var inScreen = screen.contains(btn);
+    if (!inScreen && !btn.matches(CFG.forward)) return;
+
+    if (btn.hasAttribute('data-req-final')) {
+      var all = document.querySelectorAll(CFG.screens);
+      for (var i = 0; i < all.length; i++) {
+        var gaps = missing(all[i]);
+        if (!gaps.length) continue;
+        e.preventDefault(); e.stopImmediatePropagation();
+        if (all[i] === screen) block(btn, gaps, screen.getAttribute('data-req-msg') || CFG.msg);
+        else block(btn, gaps, 'Step ' + (i + 1) + ' still has unanswered questions. Please go back and complete it before submitting.');
+        return;
+      }
+      return;
+    }
+
+    var scope = inScreen ? scopeFor(btn) : screen;
+    var gaps = missing(scope);
+    if (!gaps.length) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    block(btn, gaps, scope.getAttribute('data-req-msg') || CFG.msg);
+  }, true);
+
+  function refresh() {
+    if (shown.length) {
+      shown = shown.filter(function (r) {
+        if (r.ok()) { r.mark.classList.remove('req-missing'); return false; }
+        return true;
+      });
+      if (!shown.length) document.querySelectorAll('.req-msg.show').forEach(function (b) { b.classList.remove('show'); });
+    }
+    var screen = activeScreen();
+    document.querySelectorAll('.req-locked').forEach(function (b) { b.classList.remove('req-locked'); });
+    if (!screen) return;
+    var btns = Array.prototype.slice.call(screen.querySelectorAll(CFG.forward + ', .question-next'));
+    document.querySelectorAll(CFG.forward).forEach(function (b) { if (!b.closest(CFG.screens) && btns.indexOf(b) < 0) btns.push(b); });
+    btns.forEach(function (b) {
+      var scope = screen.contains(b) ? scopeFor(b) : screen;
+      if (missing(scope).length) b.classList.add('req-locked');
+    });
+  }
+  function later() { setTimeout(refresh, 0); }
+
+  function touch(e) {
+    if (e.target.matches && e.target.matches('input[type="range"]')) e.target.dataset.touched = '1';
+  }
+  document.addEventListener('pointerdown', touch, true);
+  document.addEventListener('keydown', touch, true);
+  document.addEventListener('input', function (e) { touch(e); later(); }, true);
+  document.addEventListener('change', later, true);
+  document.addEventListener('click', function (e) {
+    // a new screen should start without stale warnings
+    if (e.target.closest('.btn-ghost, #btn-back')) {
+      clearShown();
+      document.querySelectorAll('.req-msg.show').forEach(function (b) { b.classList.remove('show'); });
+    }
+    later();
+  });
+  document.addEventListener('keyup', later);
+  refresh();
+})();
 </script>
 </body>
 </html>
